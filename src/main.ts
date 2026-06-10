@@ -75,10 +75,20 @@ for (const service of services) {
   );
 }
 
+// Overrides: recursos de um serviço que vivem sob o prefixo de outro.
+// As avaliações de cantina (GET /canteens/:id/ratings e /canteens/:id/rating)
+// pertencem ao orders, mas /canteens normalmente vai para o catalog.
+const overrides: { pattern: RegExp; service: string }[] = [
+  { pattern: /^\/canteens\/[^/]+\/ratings?$/, service: "orders" },
+];
+
 // Roteamento limpo por prefixo de recurso — 1 base URL para o frontend.
-// Dispatcher explícito: escolhe o serviço pelo prefixo do path e delega ao
-// proxy correspondente (sem glob/strip de mount — robusto).
+// Dispatcher explícito: escolhe o serviço pelo path e delega ao proxy
+// correspondente (sem glob/strip de mount — robusto).
 function resolveService(path: string): string | null {
+  for (const override of overrides) {
+    if (override.pattern.test(path)) return override.service;
+  }
   for (const service of services) {
     for (const prefix of service.prefixes) {
       if (path === prefix || path.startsWith(`${prefix}/`)) {
